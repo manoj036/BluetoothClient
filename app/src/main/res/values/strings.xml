@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">BluetoothClient</string>
+    <string name="BT_On">ON</string>
+    <string name="BT_Off">OFF</string>
+    <string name="BT_Disc">Discoverable</string>
+    <string name="BT_discover">Discover</string>
+    <string name="Connect">Connect</string>
+    <!--<string name="Data"></string>-->
+    <string name="Send">Send</string>
+</resources>
