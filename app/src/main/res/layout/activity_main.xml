@@ -123,9 +123,4 @@
         <!--app:layout_constraintTop_toTopOf="parent"-->
         <!--app:srcCompat="@android:drawable/screen_background_light_transparent" android:contentDescription="TODO"/>-->
 
-    <ScrollView
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:isScrollContainer="false">
-    </ScrollView>
 </android.support.constraint.ConstraintLayout>

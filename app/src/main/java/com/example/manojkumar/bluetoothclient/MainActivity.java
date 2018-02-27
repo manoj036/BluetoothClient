@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,10 +14,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.ListView;
-
-import com.bumptech.glide.Glide;
+import android.widget.Toast;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -30,16 +27,22 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "Main Activity";
-    public static final String MyUrl="http://orig06.deviantart.net/63b8/f/2011/365/e/2/luffy_wallpaper_by_dander97-d4kujok.png";
+//    public static final String MyUrl="http://orig06.deviantart.net/63b8/f/2011/365/e/2/luffy_wallpaper_by_dander97-d4kujok.png";
     BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    MyBluetoothService mBluetoothConnection;
+    static MyBluetoothService mBluetoothConnection;
 
     private ListView listView;
     private EditText box;
-    private ArrayList<String> mDeviceList = new ArrayList<>();
-    private ArrayList<BluetoothDevice> mBTDevices = new ArrayList<>();
-    private BluetoothDevice mBTDevice;
+    public ArrayList<String> mDeviceList = new ArrayList<>();
+    public ArrayList<BluetoothDevice> mBTDevices = new ArrayList<>();
+    public BluetoothDevice mBTDevice;
     public boolean isConnected;
+
+    // Constants that indicate the current connection state
+    public static final int STATE_NONE = 0;       // we're doing nothing
+    public static final int STATE_LISTEN = 1;     // now listening for incoming connections
+    public static final int STATE_CONNECTING = 2; // now initiating an outgoing connection
+    public static final int STATE_CONNECTED = 3;  // now connected to a remote device
 
     @Override
     protected void onStart() {
@@ -75,20 +78,7 @@ public class MainActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                bluetoothAdapter.cancelDiscovery();
 
-                Log.d(TAG, "onItemClick: You Clicked on a device.");
-                String deviceName = mBTDevices.get(i).getName();
-                String deviceAddress = mBTDevices.get(i).getAddress();
-
-                Log.d(TAG, "onItemClick: deviceName = " + deviceName);
-                Log.d(TAG, "onItemClick: deviceAddress = " + deviceAddress);
-                Log.d(TAG, "Trying to pair with " + deviceName);
-                mBTDevices.get(i).createBond();
-
-                mBTDevice = mBTDevices.get(i);
-
-                mBluetoothConnection.startClient(mBTDevice);
             }
         });
     }
@@ -96,6 +86,24 @@ public class MainActivity extends AppCompatActivity {
 
     static class MessageEvent{
         private String sendMessage;
+        private int mState;
+        private boolean dataReceived;
+
+        public int getmState() {
+            return mState;
+        }
+
+        public boolean getDataReceived() {
+            return dataReceived;
+        }
+
+        public void setDataReceived(boolean dataReceived) {
+            this.dataReceived = dataReceived;
+        }
+
+        public void setmState(int mState) {
+            this.mState = mState;
+        }
 
         String getSendMessage() {
             return sendMessage;
@@ -109,7 +117,24 @@ public class MainActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(MessageEvent event){
         Log.d(TAG, "onMessageEvent: "+event.getSendMessage());
-        box.setText(event.getSendMessage());
+        int mState=event.getmState();
+        if(event.getDataReceived()) {
+            Toast.makeText(MainActivity.this,"Data Received",Toast.LENGTH_SHORT).show();
+            box.setText(event.getSendMessage());
+        }else switch (mState){
+            case STATE_NONE:
+                Toast.makeText(MainActivity.this,"Disconnected",Toast.LENGTH_SHORT).show();
+                break;
+            case STATE_CONNECTED:
+                Toast.makeText(MainActivity.this,"Connected",Toast.LENGTH_SHORT).show();
+                break;
+            case STATE_LISTEN:
+                Toast.makeText(MainActivity.this,"Listening for New Devices",Toast.LENGTH_SHORT).show();
+                break;
+            case STATE_CONNECTING:
+                Toast.makeText(MainActivity.this,"Connecting",Toast.LENGTH_SHORT).show();
+                break;
+        }
     }
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -167,9 +192,8 @@ public class MainActivity extends AppCompatActivity {
     public void Bluetooth_discover(View view) {
         Log.d(TAG, "btnDiscover: Looking for unpaired devices.");
         mDeviceList = new ArrayList<>();
-        bluetoothAdapter.startDiscovery();
-        IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(mReceiver, discoverDevicesIntent);
+        Intent serverIntent = new Intent(this, DeviceListActivity.class);
+        startActivityForResult(serverIntent,1);
     }
 
     private void checkBTPermissions() {
